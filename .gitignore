@@ -1,0 +1,7 @@
+# local only — not published
+main.cpp
+bench
+compile_flags.txt
+.clangd
+.clang-format
+.DS_Store
