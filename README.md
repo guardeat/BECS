@@ -1,4 +1,4 @@
-# ByteEngine
+# ByteECS
 
 A header-only **Entity Component System (ECS)** for **C++23**. Archetype storage, structure-of-arrays (SoA) columns, component queries, and bulk structural operations.
 
@@ -38,8 +38,13 @@ This repo ships **`src/`** and this README. No build system or benchmarks are in
 Clone and add `src` to your include path:
 
 ```bash
+<<<<<<< HEAD
 git clone https://github.com/guardeat/BECS.git
 cd BECS
+=======
+git clone https://github.com/your-name/ByteEngine.git
+cd ByteEngine
+>>>>>>> origin/main
 ```
 
 ```bash
@@ -227,4 +232,8 @@ Issues and pull requests are welcome. Please keep changes:
 
 ## License
 
+<<<<<<< HEAD
 MIT — see [LICENSE](LICENSE) in the repository.
+=======
+No license file yet — add one before redistributing.
+>>>>>>> origin/main
