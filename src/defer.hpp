@@ -16,6 +16,7 @@ namespace byte::ecs {
 namespace detail {
 
 struct AttachCmd {
+public:
   EntityID id;
   const ComponentInfo* info;
   std::size_t offset;
@@ -23,11 +24,13 @@ struct AttachCmd {
 };
 
 struct DetachCmd {
+public:
   EntityID id;
   TypeID type_id;
 };
 
 struct DeferQueue {
+public:
   std::vector<EntityID> destroys{};
   std::vector<DetachCmd> detaches{};
   std::vector<AttachCmd> attaches{};
