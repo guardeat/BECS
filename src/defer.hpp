@@ -1,7 +1,6 @@
 #pragma once
 
 #include "component_info.hpp"
-#include "ecs_assert.hpp"
 #include "entity.hpp"
 #include "type_id.hpp"
 
@@ -9,7 +8,6 @@
 #include <cstddef>
 #include <cstring>
 #include <memory>
-#include <span>
 #include <utility>
 #include <vector>
 
@@ -55,18 +53,14 @@ struct DeferQueue {
     payload.clear();
   }
 
-  ~DeferQueue() {
-    clear();
-  }
+  ~DeferQueue() { clear(); }
 
   DeferQueue() = default;
   DeferQueue(const DeferQueue&) = delete;
   DeferQueue& operator=(const DeferQueue&) = delete;
   DeferQueue(DeferQueue&& other) noexcept
-      : destroys(std::move(other.destroys)),
-        detaches(std::move(other.detaches)),
-        attaches(std::move(other.attaches)),
-        payload(std::move(other.payload)) {}
+      : destroys(std::move(other.destroys)), detaches(std::move(other.detaches)),
+        attaches(std::move(other.attaches)), payload(std::move(other.payload)) {}
 
   DeferQueue& operator=(DeferQueue&& other) noexcept {
     if (this != &other) {
@@ -95,17 +89,12 @@ private:
   detail::DeferQueue* queue_ = nullptr;
   std::unique_ptr<detail::DeferQueue> owned_queue_{};
 
-  detail::DeferQueue& queue() noexcept {
-    return *queue_;
-  }
+  detail::DeferQueue& queue() noexcept { return *queue_; }
 
-  const detail::DeferQueue& queue() const noexcept {
-    return *queue_;
-  }
+  const detail::DeferQueue& queue() const noexcept { return *queue_; }
 
 public:
-  explicit Defer(Pool_& pool, detail::DeferQueue* queue = nullptr)
-      : pool_(pool), queue_(queue) {
+  explicit Defer(Pool_& pool, detail::DeferQueue* queue = nullptr) : pool_(pool), queue_(queue) {
     if (queue_ == nullptr) {
       owned_queue_ = std::make_unique<detail::DeferQueue>();
       queue_ = owned_queue_.get();
@@ -155,21 +144,13 @@ public:
     });
   }
 
-  void destroy(EntityID id) {
-    queue().destroys.push_back(id);
-  }
+  void destroy(EntityID id) { queue().destroys.push_back(id); }
 
-  [[nodiscard]] bool empty() const noexcept {
-    return queue().empty();
-  }
+  [[nodiscard]] bool empty() const noexcept { return queue().empty(); }
 
-  [[nodiscard]] std::size_t size() const noexcept {
-    return queue().size();
-  }
+  [[nodiscard]] std::size_t size() const noexcept { return queue().size(); }
 
-  void clear() noexcept {
-    queue().clear();
-  }
+  void clear() noexcept { queue().clear(); }
 
   /// @brief Executes all queued operations in batch order (detaches -> attaches -> destroys).
   void flush() {
