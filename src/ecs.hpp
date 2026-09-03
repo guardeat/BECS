@@ -4,6 +4,7 @@
 #include "archeview.hpp"
 #include "bulk.hpp"
 #include "component_info.hpp"
+#include "defer.hpp"
 #include "entity.hpp"
 #include "pool.hpp"
 #include "poolview.hpp"
@@ -27,6 +28,9 @@ using Archetype = ecs::Archetype<Alloc>;
 
 template <typename Pool_>
 using Bulk = ecs::Bulk<Pool_>;
+
+template <typename Pool_>
+using Defer = ecs::Defer<Pool_>;
 
 template <typename Archetype_, typename... Types>
 using PoolView = ecs::PoolView<Archetype_, Types...>;

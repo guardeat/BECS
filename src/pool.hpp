@@ -2,6 +2,7 @@
 
 #include "archetype.hpp"
 #include "bulk.hpp"
+#include "defer.hpp"
 #include "ecs_assert.hpp"
 #include "entity.hpp"
 #include "poolview.hpp"
@@ -37,6 +38,7 @@ private:
   [[no_unique_address]] Alloc_ alloc_{};
   ArchetypeMap_ archetypes_{};
   byte::sparse_vector<Location> entities_{};
+  detail::DeferQueue defer_queue_{};
 
 public:
   Pool() = default;
@@ -49,7 +51,8 @@ public:
   Pool(Pool&& other)
       : alloc_(std::move(other.alloc_)),
         archetypes_(std::move(other.archetypes_)),
-        entities_(std::move(other.entities_)) {
+        entities_(std::move(other.entities_)),
+        defer_queue_(std::move(other.defer_queue_)) {
     rebind();
   }
 
@@ -58,6 +61,7 @@ public:
       alloc_ = std::move(other.alloc_);
       archetypes_ = std::move(other.archetypes_);
       entities_ = std::move(other.entities_);
+      defer_queue_ = std::move(other.defer_queue_);
       rebind();
     }
     return *this;
@@ -108,28 +112,36 @@ public:
     entities_.erase(index_of(id));
   }
 
-  template <typename Type_>
-  [[nodiscard]] archetype_type* transition_add(archetype_type* src) {
+  [[nodiscard]] archetype_type* transition_add(archetype_type* src, const ComponentInfo& info) {
     auto keys = src->signature();
     std::vector<TypeID> sig(keys.begin(), keys.end());
-    sig.push_back(byte::type_id_v<Type_>);
-    return ensure(sig, [src] {
+    sig.push_back(info.id);
+    return ensure(sig, [src, &info] {
       archetype_type next = src->clone_empty();
-      next.template add<Type_>();
+      next.add(info);
+      return next;
+    });
+  }
+
+  template <typename Type_>
+  [[nodiscard]] archetype_type* transition_add(archetype_type* src) {
+    return transition_add(src, component_info_v<Type_>);
+  }
+
+  [[nodiscard]] archetype_type* transition_remove(archetype_type* src, TypeID id) {
+    auto keys = src->signature();
+    std::vector<TypeID> sig(keys.begin(), keys.end());
+    std::erase(sig, id);
+    return ensure(sig, [src, id] {
+      archetype_type next = src->clone_empty();
+      next.remove(id);
       return next;
     });
   }
 
   template <typename Type_>
   [[nodiscard]] archetype_type* transition_remove(archetype_type* src) {
-    auto keys = src->signature();
-    std::vector<TypeID> sig(keys.begin(), keys.end());
-    std::erase(sig, byte::type_id_v<Type_>);
-    return ensure(sig, [src] {
-      archetype_type next = src->clone_empty();
-      next.template remove<Type_>();
-      return next;
-    });
+    return transition_remove(src, byte::type_id_v<Type_>);
   }
 
   template <typename Type_>
@@ -201,6 +213,14 @@ public:
 
   [[nodiscard]] Bulk<Pool> bulk() {
     return Bulk<Pool>{*this};
+  }
+
+  [[nodiscard]] Defer<Pool> defer() {
+    return Defer<Pool>{*this, &defer_queue_};
+  }
+
+  void flush() {
+    defer().flush();
   }
 
   [[nodiscard]] Location& location(EntityID id) {

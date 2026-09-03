@@ -119,11 +119,15 @@ public:
 
   template <typename Type_>
   void add() {
-    const TypeID id = byte::type_id_v<Type_>;
+    add(component_info<Type_>());
+  }
+
+  void add(const ComponentInfo& info) {
+    const TypeID id = info.id;
     check(!columns_.contains(id), "add: column already present");
 
     Column col;
-    col.info = &component_info<Type_>();
+    col.info = &info;
 
     if (size_ > 0 && capacity_ == 0) {
       capacity_ = size_;
@@ -132,7 +136,7 @@ public:
       auto bytes = byte_alloc();
       col.allocate(bytes, capacity_);
       if (size_ > 0) {
-        if constexpr (!std::default_initializable<Type_>) {
+        if (!info.default_constructible()) {
           col.deallocate(bytes);
           fail("add: type is not default constructible");
         }
