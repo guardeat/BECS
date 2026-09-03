@@ -5,7 +5,7 @@
 #include "ecs_assert.hpp"
 #include "entity.hpp"
 #include "poolview.hpp"
-#include "set_map.hpp"
+#include "inverted_map.hpp"
 #include "sparse_vector.hpp"
 
 #include <concepts>
@@ -32,7 +32,7 @@ public:
   };
 
 private:
-  using ArchetypeMap_ = byte::set_map<TypeID, archetype_type>;
+  using ArchetypeMap_ = byte::inverted_map<TypeID, archetype_type>;
 
   [[no_unique_address]] Alloc_ alloc_{};
   ArchetypeMap_ archetypes_{};
@@ -109,6 +109,30 @@ public:
   }
 
   template <typename Type_>
+  [[nodiscard]] archetype_type* transition_add(archetype_type* src) {
+    auto keys = src->signature();
+    std::vector<TypeID> sig(keys.begin(), keys.end());
+    sig.push_back(byte::type_id_v<Type_>);
+    return ensure(sig, [src] {
+      archetype_type next = src->clone_empty();
+      next.template add<Type_>();
+      return next;
+    });
+  }
+
+  template <typename Type_>
+  [[nodiscard]] archetype_type* transition_remove(archetype_type* src) {
+    auto keys = src->signature();
+    std::vector<TypeID> sig(keys.begin(), keys.end());
+    std::erase(sig, byte::type_id_v<Type_>);
+    return ensure(sig, [src] {
+      archetype_type next = src->clone_empty();
+      next.template remove<Type_>();
+      return next;
+    });
+  }
+
+  template <typename Type_>
   void attach(EntityID id) {
     static_assert(!std::same_as<Type_, EntityID>, "attach: entity id is already a column");
     Location& loc = location(id);
@@ -116,16 +140,7 @@ public:
       check(false, "attach: component already present");
       return;
     }
-
-    auto keys = loc.archetype->signature();
-    std::vector<TypeID> sig(keys.begin(), keys.end());
-    sig.push_back(byte::type_id_v<Type_>);
-    archetype_type* src = loc.archetype;
-    archetype_type* dst = ensure(sig, [src] {
-      archetype_type next = src->clone_empty();
-      next.template add<Type_>();
-      return next;
-    });
+    archetype_type* dst = transition_add<Type_>(loc.archetype);
     relocate(id, loc, dst);
   }
 
@@ -143,16 +158,7 @@ public:
       check(false, "detach: missing component");
       return;
     }
-
-    auto keys = loc.archetype->signature();
-    std::vector<TypeID> sig(keys.begin(), keys.end());
-    std::erase(sig, byte::type_id_v<Type_>);
-    archetype_type* src = loc.archetype;
-    archetype_type* dst = ensure(sig, [src] {
-      archetype_type next = src->clone_empty();
-      next.template remove<Type_>();
-      return next;
-    });
+    archetype_type* dst = transition_remove<Type_>(loc.archetype);
     relocate(id, loc, dst);
   }
 

@@ -46,17 +46,30 @@ public:
 
   template <typename Type_>
   void attach(std::span<const EntityID> ids) {
-    migrate<Type_, true>(ids, nullptr);
+    do_attach<Type_>(ids, nullptr);
   }
 
   template <typename Type_>
   void attach(std::span<const EntityID> ids, Type_ value) {
-    migrate<Type_, true>(ids, &value);
+    do_attach<Type_>(ids, &value);
   }
 
   template <typename Type_>
   void detach(std::span<const EntityID> ids) {
-    migrate<Type_, false>(ids, nullptr);
+    static_assert(!std::same_as<Type_, EntityID>, "bulk: cannot detach entity id");
+
+    for (auto& [src, group] : group_by_source(ids)) {
+      if (!src->template contains<Type_>()) {
+        check(false, "detach: missing component");
+        continue;
+      }
+
+      archetype_type* dst = pool_.template transition_remove<Type_>(src);
+      dst->reserve(dst->size() + group.size());
+      for (EntityID id : group) {
+        pool_.relocate(id, pool_.location(id), dst);
+      }
+    }
   }
 
   void destroy(std::span<const EntityID> ids) {
@@ -92,48 +105,22 @@ private:
     return groups;
   }
 
-  template <typename Type_, bool Attach_>
-  void migrate(std::span<const EntityID> ids, const Type_* value) {
-    static_assert(!std::same_as<Type_, EntityID>, "bulk: cannot attach or detach entity id");
+  template <typename Type_>
+  void do_attach(std::span<const EntityID> ids, const Type_* value) {
+    static_assert(!std::same_as<Type_, EntityID>, "bulk: cannot attach entity id");
 
     for (auto& [src, group] : group_by_source(ids)) {
-      const bool present = src->template contains<Type_>();
-      if constexpr (Attach_) {
-        if (present) {
-          check(false, "attach: component already present");
-          continue;
-        }
-      } else {
-        if (!present) {
-          check(false, "detach: missing component");
-          continue;
-        }
+      if (src->template contains<Type_>()) {
+        check(false, "attach: component already present");
+        continue;
       }
 
-      auto keys = src->signature();
-      std::vector<TypeID> sig(keys.begin(), keys.end());
-      if constexpr (Attach_) {
-        sig.push_back(byte::type_id_v<Type_>);
-      } else {
-        std::erase(sig, byte::type_id_v<Type_>);
-      }
-
-      archetype_type* dst = pool_.ensure(sig, [src] {
-        archetype_type next = src->clone_empty();
-        if constexpr (Attach_) {
-          next.template add<Type_>();
-        } else {
-          next.template remove<Type_>();
-        }
-        return next;
-      });
+      archetype_type* dst = pool_.template transition_add<Type_>(src);
       dst->reserve(dst->size() + group.size());
       for (EntityID id : group) {
         pool_.relocate(id, pool_.location(id), dst);
-        if constexpr (Attach_) {
-          if (value != nullptr) {
-            pool_.template get<Type_>(id) = *value;
-          }
+        if (value != nullptr) {
+          pool_.template get<Type_>(id) = *value;
         }
       }
     }

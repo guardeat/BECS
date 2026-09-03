@@ -26,7 +26,7 @@ src/
 ├── archetype.hpp
 ├── bulk.hpp
 ├── poolview.hpp
-├── set_map.hpp
+├── inverted_map.hpp
 ├── sparse_vector.hpp
 └── ...
 ```
@@ -212,7 +212,7 @@ clang++ -std=c++23 -DBYTE_ECS_CHECKS=0 -Isrc your_app.cpp
 
 1. **Archetypes** — one storage layout per component signature
 2. **SoA columns** — cache-friendly contiguous component arrays
-3. **Signature lookup** — `set_map` finds archetypes by superset query for `view` / `each`
+3. **Signature lookup** — `inverted_map` finds archetypes by superset query for `view` / `each`
 
 ## Roadmap
 
