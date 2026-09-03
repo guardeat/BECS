@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../meta/type_id.hpp"
 #include "archetype.hpp"
 #include "archeview.hpp"
 #include "bulk.hpp"
@@ -8,7 +9,6 @@
 #include "entity.hpp"
 #include "pool.hpp"
 #include "poolview.hpp"
-#include "type_id.hpp"
 
 #include <memory>
 

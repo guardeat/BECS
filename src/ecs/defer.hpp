@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../meta/type_id.hpp"
 #include "component_info.hpp"
 #include "entity.hpp"
-#include "type_id.hpp"
 
 #include <concepts>
 #include <cstddef>

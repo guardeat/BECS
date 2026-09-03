@@ -36,25 +36,29 @@ A fast, header-only **Entity Component System (ECS)** written in **C++23**. Buil
 ```text
 .
 ├── src/
-│   ├── ecs.hpp             # Umbrella header (includes everything, exposes byte:: aliases)
-│   ├── pool.hpp            # Primary ECS coordinator (byte::ecs::Pool)
-│   ├── archetype.hpp       # Table storage for a single component signature (SoA)
-│   ├── archeview.hpp       # Direct iterator view over a single archetype
-│   ├── poolview.hpp        # Multi-archetype query view with .with() and .without()
-│   ├── bulk.hpp            # Batch creation and migration utilities
-│   ├── defer.hpp           # Deferred command buffer for safe mutations
-│   ├── column.hpp          # Contiguous type-erased component column
-│   ├── component_info.hpp  # Runtime metadata & lifecycle hooks for components
-│   ├── entity.hpp          # EntityID handle definition
-│   ├── inverted_map.hpp    # Fast superset archetype index for queries
-│   ├── sparse_vector.hpp   # Sparse set backing entity lookups and recycling
-│   ├── type_id.hpp         # Compile-time type identity hashing
-│   ├── type_name.hpp       # Compile-time type name reflection
-│   ├── fnv1a.hpp           # FNV-1a 64-bit compile-time hash implementation
-│   └── ecs_assert.hpp      # Configurable assertions and check macros
-├── main.cpp                # Comprehensive performance benchmarks and examples
-├── compile_flags.txt       # Clang / clangd compilation flags
-├── LICENSE                 # MIT License
+│   ├── ecs/
+│   │   ├── ecs.hpp             # Primary umbrella header (exposes byte:: aliases)
+│   │   ├── pool.hpp            # Primary ECS coordinator (byte::ecs::Pool)
+│   │   ├── archetype.hpp       # Table storage for a single component signature (SoA)
+│   │   ├── archeview.hpp       # Direct iterator view over a single archetype
+│   │   ├── poolview.hpp        # Multi-archetype query view with .with() and .without()
+│   │   ├── bulk.hpp            # Batch creation and migration utilities
+│   │   ├── defer.hpp           # Deferred command buffer for safe mutations
+│   │   ├── column.hpp          # Contiguous type-erased component column
+│   │   ├── component_info.hpp  # Runtime metadata & lifecycle hooks for components
+│   │   ├── entity.hpp          # EntityID handle definition
+│   │   └── ecs_assert.hpp      # Configurable assertions and check macros
+│   ├── container/
+│   │   ├── inverted_map.hpp    # Fast superset archetype index for queries
+│   │   └── sparse_vector.hpp   # Sparse set backing entity lookups and recycling
+│   ├── meta/
+│   │   ├── type_id.hpp         # Compile-time type identity hashing
+│   │   └── type_name.hpp       # Compile-time type name reflection
+│   └── hash/
+│       └── fnv1a.hpp           # FNV-1a 64-bit compile-time hash implementation
+├── main.cpp                    # Comprehensive performance benchmarks and examples
+├── compile_flags.txt           # Clang / clangd compilation flags
+├── LICENSE                     # MIT License
 └── README.md
 ```
 
@@ -95,7 +99,7 @@ clang++ -std=c++23 -O3 -DNDEBUG -Wall -Wextra -Isrc main.cpp -o bench
 ## Quick Example
 
 ```cpp
-#include "ecs.hpp"
+#include "ecs/ecs.hpp"
 #include <iostream>
 
 struct Position { float x = 0.f; float y = 0.f; };

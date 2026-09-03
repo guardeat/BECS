@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../meta/type_id.hpp"
 #include "ecs_assert.hpp"
 #include "entity.hpp"
-#include "type_id.hpp"
 
 #include <concepts>
 #include <memory>

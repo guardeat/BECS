@@ -6,8 +6,8 @@
 #include "ecs_assert.hpp"
 #include "entity.hpp"
 #include "poolview.hpp"
-#include "inverted_map.hpp"
-#include "sparse_vector.hpp"
+#include "../container/inverted_map.hpp"
+#include "../container/sparse_vector.hpp"
 
 #include <concepts>
 #include <cstddef>

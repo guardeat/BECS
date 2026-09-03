@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fnv1a.hpp"
+#include "../hash/fnv1a.hpp"
 #include "type_name.hpp"
 
 #include <cstdint>
