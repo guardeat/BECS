@@ -27,20 +27,18 @@ public:
 
   [[nodiscard]] std::vector<EntityID> create(size_type n) {
     const TypeID ids[] = {byte::type_id_v<EntityID>};
-    archetype_type* dst = pool_.ensure(ids, [&] {
-      return archetype_type(pool_.get_allocator());
-    });
+    archetype_type* dst = pool_.ensure(ids, [&] { return archetype_type(pool_.get_allocator()); });
     return spawn_n(dst, n);
   }
 
   template <typename... Types_>
   [[nodiscard]] std::vector<EntityID> create(size_type n) {
     static_assert(sizeof...(Types_) >= 1, "create: use create() for an empty entity");
-    static_assert((!std::same_as<Types_, EntityID> && ...), "create: entity id is already a column");
+    static_assert((!std::same_as<Types_, EntityID> && ...),
+                  "create: entity id is already a column");
     const TypeID ids[] = {byte::type_id_v<EntityID>, byte::type_id_v<Types_>...};
-    archetype_type* dst = pool_.ensure(ids, [&] {
-      return archetype_type::template of<Types_...>(pool_.get_allocator());
-    });
+    archetype_type* dst = pool_.ensure(
+        ids, [&] { return archetype_type::template of<Types_...>(pool_.get_allocator()); });
     return spawn_n(dst, n);
   }
 
@@ -74,9 +72,7 @@ public:
 
   void destroy(std::span<const EntityID> ids) {
     for (EntityID id : ids) {
-      if (pool_.contains(id)) {
-        pool_.destroy(id);
-      }
+      pool_.destroy(id);
     }
   }
 
