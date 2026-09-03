@@ -260,12 +260,15 @@ public:
   }
 
   template <typename DstAlloc_>
-  EntityID migrate_row(std::size_t row, Archetype<DstAlloc_>& dst) {
+  EntityID migrate_row(std::size_t row, Archetype<DstAlloc_>& dst, TypeID skip_column = {}) {
     check(static_cast<const void*>(this) != static_cast<const void*>(&dst), "migrate_row: same archetype");
     check(row < size_, "migrate_row: row out of range");
 
     dst.reserve(dst.next_capacity(dst.size_ + 1));
     for (auto it = dst.columns_.begin(); it != dst.columns_.end(); ++it) {
+      if (it->first == skip_column) {
+        continue;
+      }
       auto src = columns_.find(it->first);
       if (src != columns_.end()) {
         it->second.move_construct_slot(dst.size_, src->second, row);

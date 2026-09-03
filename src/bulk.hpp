@@ -5,6 +5,7 @@
 #include "type_id.hpp"
 
 #include <concepts>
+#include <memory>
 #include <span>
 #include <unordered_map>
 #include <vector>
@@ -50,6 +51,38 @@ public:
   template <typename Type_>
   void attach(std::span<const EntityID> ids, Type_ value) {
     do_attach<Type_>(ids, &value);
+  }
+
+  template <typename Type_, typename... Args_>
+  void emplace(std::span<const EntityID> ids, Args_&&... args) {
+    static_assert(!std::same_as<Type_, EntityID>, "bulk: cannot emplace entity id");
+    Type_ value(std::forward<Args_>(args)...);
+    attach<Type_>(ids, std::move(value));
+  }
+
+  template <typename Type_, typename Fn_>
+  void emplace_with(std::span<const EntityID> ids, Fn_&& fn) {
+    static_assert(!std::same_as<Type_, EntityID>, "bulk: cannot emplace entity id");
+
+    for (auto& [src, group] : group_by_source(ids)) {
+      if (src->template contains<Type_>()) {
+        check(false, "emplace_with: component already present");
+        continue;
+      }
+
+      archetype_type* dst = pool_.template transition_add<Type_>(src);
+      dst->reserve(dst->size() + group.size());
+      for (EntityID id : group) {
+        pool_.relocate(id, pool_.location(id), dst, byte::type_id_v<Type_>);
+        auto& loc = pool_.location(id);
+        Type_* slot = reinterpret_cast<Type_*>(loc.archetype->raw_column(byte::type_id_v<Type_>).slot(loc.row));
+        if constexpr (std::is_invocable_v<Fn_, EntityID>) {
+          std::construct_at(slot, fn(id));
+        } else {
+          std::construct_at(slot, fn());
+        }
+      }
+    }
   }
 
   template <typename Type_>
@@ -114,9 +147,13 @@ private:
       archetype_type* dst = pool_.template transition_add<Type_>(src);
       dst->reserve(dst->size() + group.size());
       for (EntityID id : group) {
-        pool_.relocate(id, pool_.location(id), dst);
         if (value != nullptr) {
-          pool_.template get<Type_>(id) = *value;
+          pool_.relocate(id, pool_.location(id), dst, byte::type_id_v<Type_>);
+          auto& loc = pool_.location(id);
+          Type_* slot = reinterpret_cast<Type_*>(loc.archetype->raw_column(byte::type_id_v<Type_>).slot(loc.row));
+          std::construct_at(slot, *value);
+        } else {
+          pool_.relocate(id, pool_.location(id), dst);
         }
       }
     }

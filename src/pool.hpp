@@ -156,10 +156,24 @@ public:
     relocate(id, loc, dst);
   }
 
+  template <typename Type_, typename... Args_>
+  Type_& emplace(EntityID id, Args_&&... args) {
+    static_assert(!std::same_as<Type_, EntityID>, "emplace: entity id is already a column");
+    Location& loc = location(id);
+    if (loc.archetype->template contains<Type_>()) {
+      check(false, "emplace: component already present");
+      return get<Type_>(id);
+    }
+    archetype_type* dst = transition_add<Type_>(loc.archetype);
+    relocate(id, loc, dst, byte::type_id_v<Type_>);
+    Type_* ptr = reinterpret_cast<Type_*>(loc.archetype->raw_column(byte::type_id_v<Type_>).slot(loc.row));
+    std::construct_at(ptr, std::forward<Args_>(args)...);
+    return *ptr;
+  }
+
   template <typename Type_>
-  void attach(EntityID id, Type_ value) {
-    attach<Type_>(id);
-    get<Type_>(id) = std::move(value);
+  Type_& attach(EntityID id, Type_ value) {
+    return emplace<Type_>(id, std::move(value));
   }
 
   template <typename Type_>
@@ -253,12 +267,12 @@ public:
     return id;
   }
 
-  void relocate(EntityID id, Location& loc, archetype_type* dst) {
+  void relocate(EntityID id, Location& loc, archetype_type* dst, TypeID skip_column = {}) {
     if (loc.archetype == dst) {
       return;
     }
     const size_type old_row = loc.row;
-    const EntityID last = loc.archetype->migrate_row(old_row, *dst);
+    const EntityID last = loc.archetype->migrate_row(old_row, *dst, skip_column);
     if (last != id) {
       entities_[index_of(last)].row = old_row;
     }

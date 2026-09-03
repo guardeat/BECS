@@ -104,9 +104,9 @@ public:
     }
   }
 
-  template <typename Type_>
-  void attach(EntityID id, Type_ value) {
-    static_assert(!std::same_as<Type_, EntityID>, "defer: cannot attach entity id");
+  template <typename Type_, typename... Args_>
+  void emplace(EntityID id, Args_&&... args) {
+    static_assert(!std::same_as<Type_, EntityID>, "defer: cannot emplace entity id");
     const ComponentInfo& info = component_info_v<Type_>;
     auto& q = queue();
 
@@ -116,7 +116,7 @@ public:
     }
     q.payload.resize(offset + info.size);
 
-    std::construct_at(reinterpret_cast<Type_*>(&q.payload[offset]), std::move(value));
+    std::construct_at(reinterpret_cast<Type_*>(&q.payload[offset]), std::forward<Args_>(args)...);
 
     q.attaches.push_back(detail::AttachCmd{
         .id = id,
@@ -124,6 +124,11 @@ public:
         .offset = offset,
         .has_value = true,
     });
+  }
+
+  template <typename Type_>
+  void attach(EntityID id, Type_ value) {
+    emplace<Type_>(id, std::move(value));
   }
 
   template <typename Type_>
@@ -195,15 +200,12 @@ public:
       }
 
       archetype_type* dst = pool_.transition_add(loc.archetype, *cmd.info);
-      pool_.relocate(cmd.id, loc, dst);
+      pool_.relocate(cmd.id, loc, dst, cmd.has_value ? cmd.info->id : TypeID{});
 
       auto& loc_new = pool_.location(cmd.id);
       std::byte* slot = loc_new.archetype->raw_column(cmd.info->id).slot(loc_new.row);
 
       if (cmd.has_value) {
-        if (cmd.info->destroy != nullptr) {
-          cmd.info->destroy(slot);
-        }
         if (cmd.info->move_construct != nullptr) {
           cmd.info->move_construct(slot, src);
         } else {
